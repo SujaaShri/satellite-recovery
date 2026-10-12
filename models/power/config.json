@@ -1,0 +1,17 @@
+{
+    "subsystem": "power",
+    "model_type": "OneClassSVM",
+    "kernel": "rbf",
+    "nu": 0.03,
+    "gamma": 1.0,
+    "threshold": 0.002874,
+    "window_size": 10,
+    "gap_threshold_minutes": 3,
+    "input_channels": [
+        "Battery_Voltage",
+        "Battery_Temp"
+    ],
+    "feature_count": 21,
+    "feature_extractor": "extract_power_features",
+    "score_direction": "higher_is_more_anomalous"
+}

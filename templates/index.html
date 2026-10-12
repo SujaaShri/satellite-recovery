@@ -1,0 +1,2148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Satellite Recovery AI System | Mission Control</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-space: #070b14;
+            --bg-surface: rgba(13, 20, 36, 0.82);
+            --bg-card: rgba(15, 23, 42, 0.82);
+
+            --border-glow: rgba(56, 189, 248, 0.25);
+            --border-subtle: rgba(56, 189, 248, 0.12);
+
+            --accent-cyan: #00f0ff;
+            --accent-blue: #38bdf8;
+            --accent-green: #00ff9d;
+            --accent-amber: #f59e0b;
+            --accent-red: #ff3366;
+            --accent-violet: #a855f7;
+
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+
+            --font-display: 'Orbitron', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: var(--font-body);
+            background-color: var(--bg-space);
+            color: var(--text-primary);
+            overflow-x: hidden;
+
+            background-image:
+                radial-gradient(
+                    circle at 50% 0%,
+                    rgba(14, 165, 233, 0.15),
+                    transparent 60%
+                ),
+                radial-gradient(
+                    circle at 10% 30%,
+                    rgba(168, 85, 247, 0.07),
+                    transparent 40%
+                ),
+                radial-gradient(
+                    circle at 90% 80%,
+                    rgba(0, 240, 255, 0.07),
+                    transparent 50%
+                );
+        }
+
+        #starfield-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.55;
+        }
+
+        .scanlines {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%,
+                rgba(0, 0, 0, 0.18) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.25;
+        }
+
+        .app-wrapper {
+            position: relative;
+            z-index: 2;
+            max-width: 1450px;
+            margin: auto;
+            padding: 24px 22px 60px;
+        }
+
+        .mission-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+
+            padding: 17px 22px;
+            margin-bottom: 22px;
+
+            background: var(--bg-surface);
+            border: 1px solid var(--border-glow);
+            border-radius: 14px;
+            backdrop-filter: blur(16px);
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .satellite-logo {
+            width: 48px;
+            height: 48px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border: 1px solid var(--accent-cyan);
+            border-radius: 12px;
+
+            background: rgba(0, 240, 255, 0.08);
+            box-shadow: 0 0 18px rgba(0, 240, 255, 0.25);
+        }
+
+        .satellite-logo svg {
+            width: 27px;
+            height: 27px;
+            fill: none;
+            stroke: var(--accent-cyan);
+            stroke-width: 1.7;
+        }
+
+        .brand-text h1 {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .brand-text p {
+            margin-top: 5px;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            padding: 7px 13px;
+
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+
+            background: rgba(0, 0, 0, 0.32);
+
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 10px var(--accent-green);
+        }
+
+        .top-strip {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .top-stat {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 13px 16px;
+        }
+
+        .top-stat-label {
+            font-family: var(--font-mono);
+            font-size: 0.64rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+        }
+
+        .top-stat-value {
+            margin-top: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 430px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .left-column,
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .card {
+            position: relative;
+
+            background: var(--bg-surface);
+            border: 1px solid var(--border-glow);
+            border-radius: 14px;
+
+            padding: 20px;
+
+            backdrop-filter: blur(14px);
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.32);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+
+            padding-bottom: 13px;
+            margin-bottom: 16px;
+
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .card-title {
+            font-family: var(--font-display);
+            font-size: 0.92rem;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+
+        .card-subtitle {
+            margin-top: 4px;
+            font-family: var(--font-mono);
+            font-size: 0.63rem;
+            color: var(--text-muted);
+        }
+
+        .system-badge {
+            padding: 4px 8px;
+
+            border: 1px solid rgba(56, 189, 248, 0.28);
+            border-radius: 5px;
+
+            background: rgba(56, 189, 248, 0.08);
+
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: var(--accent-blue);
+
+            text-transform: uppercase;
+        }
+
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 11px;
+        }
+
+        .telemetry-tile {
+            min-height: 90px;
+            padding: 13px;
+
+            background: rgba(6, 11, 22, 0.72);
+            border: 1px solid var(--border-subtle);
+            border-radius: 9px;
+        }
+
+        .telemetry-label {
+            font-family: var(--font-mono);
+            font-size: 0.64rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            line-height: 1.4;
+        }
+
+        .telemetry-value {
+            margin-top: 9px;
+
+            font-family: var(--font-mono);
+            font-size: 1.18rem;
+            font-weight: 700;
+
+            color: #ffffff;
+        }
+
+        .telemetry-unit {
+            margin-left: 3px;
+            font-size: 0.67rem;
+            color: var(--text-secondary);
+        }
+
+        .subsystem-list {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+        }
+
+        .subsystem-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            padding: 11px 13px;
+
+            background: rgba(6, 11, 22, 0.72);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+        }
+
+        .subsystem-name {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .subsystem-status {
+            padding: 4px 9px;
+
+            border-radius: 5px;
+
+            font-family: var(--font-mono);
+            font-size: 0.66rem;
+            font-weight: 700;
+        }
+
+        .status-normal {
+            color: var(--accent-green);
+            background: rgba(0, 255, 157, 0.1);
+            border: 1px solid rgba(0, 255, 157, 0.28);
+        }
+
+        .status-anomaly {
+            color: var(--accent-red);
+            background: rgba(255, 51, 102, 0.12);
+            border: 1px solid rgba(255, 51, 102, 0.32);
+        }
+
+        .status-warmup {
+            color: var(--accent-amber);
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.28);
+        }
+
+        .event-box {
+            min-height: 105px;
+
+            padding: 14px;
+
+            background: rgba(6, 11, 22, 0.82);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+
+            font-family: var(--font-mono);
+            font-size: 0.76rem;
+            line-height: 1.65;
+            color: #dbe5f0;
+        }
+
+        .event-box.nominal {
+            color: var(--text-secondary);
+        }
+
+        .event-box.anomaly {
+            border-color: rgba(255, 51, 102, 0.38);
+        }
+
+        .waiting-panel {
+            min-height: 500px;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+
+            text-align: center;
+
+            background: var(--bg-surface);
+            border: 1px solid var(--border-glow);
+            border-radius: 14px;
+
+            padding: 40px;
+        }
+
+        .monitor-ring {
+            width: 105px;
+            height: 105px;
+
+            margin-bottom: 25px;
+
+            border: 1px solid rgba(0, 240, 255, 0.22);
+            border-top-color: var(--accent-cyan);
+            border-radius: 50%;
+
+            animation: rotate 3s linear infinite;
+
+            position: relative;
+        }
+
+        .monitor-ring::after {
+            content: "";
+            position: absolute;
+            inset: 22px;
+
+            border: 1px solid rgba(0, 240, 255, 0.16);
+            border-radius: 50%;
+        }
+
+        .waiting-panel h2 {
+            font-family: var(--font-display);
+            font-size: 1rem;
+            letter-spacing: 1.2px;
+        }
+
+        .waiting-panel p {
+            max-width: 450px;
+            margin-top: 12px;
+
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            line-height: 1.7;
+            color: var(--text-muted);
+        }
+
+        .pipeline-state {
+            margin-top: 20px;
+
+            padding: 7px 12px;
+
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+
+            font-family: var(--font-mono);
+            font-size: 0.67rem;
+            color: var(--accent-cyan);
+        }
+
+        .pipeline-stepper {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+
+            margin-bottom: 18px;
+        }
+
+        .pipeline-step {
+            padding: 9px 10px;
+
+            text-align: center;
+
+            background: rgba(6, 11, 22, 0.72);
+            border: 1px solid var(--border-subtle);
+            border-radius: 7px;
+
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        .pipeline-step.complete {
+            color: var(--accent-green);
+            border-color: rgba(0, 255, 157, 0.28);
+        }
+
+        .pipeline-step.processing {
+            color: var(--accent-cyan);
+            border-color: rgba(0, 240, 255, 0.35);
+        }
+
+        .agent-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-glow);
+            border-radius: 14px;
+
+            padding: 20px;
+        }
+
+        .agent-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+
+            padding-bottom: 12px;
+            margin-bottom: 14px;
+
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .agent-title {
+            font-family: var(--font-display);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .agent-type {
+            margin-top: 4px;
+
+            font-family: var(--font-mono);
+            font-size: 0.62rem;
+            color: var(--text-muted);
+        }
+
+        .confidence {
+            padding: 6px 10px;
+
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            color: var(--accent-cyan);
+        }
+
+        .detail {
+            margin-top: 13px;
+        }
+
+        .detail-label {
+            margin-bottom: 6px;
+
+            font-family: var(--font-mono);
+            font-size: 0.64rem;
+            color: var(--text-muted);
+
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-content {
+            padding: 12px 13px;
+
+            background: rgba(6, 11, 22, 0.78);
+            border: 1px solid var(--border-subtle);
+            border-radius: 7px;
+
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            line-height: 1.6;
+            color: #dce6f0;
+        }
+
+        .fault-badge {
+            display: inline-block;
+
+            padding: 5px 10px;
+
+            border: 1px solid rgba(255, 51, 102, 0.35);
+            border-radius: 6px;
+
+            background: rgba(255, 51, 102, 0.1);
+
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #ff7897;
+
+            text-transform: uppercase;
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .chip {
+            padding: 4px 8px;
+
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            border-radius: 5px;
+
+            background: rgba(56, 189, 248, 0.08);
+
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: var(--accent-blue);
+        }
+
+        .recovery-plan {
+            padding: 15px;
+
+            border-left: 3px solid var(--accent-violet);
+            border-radius: 8px;
+
+            background: linear-gradient(
+                135deg,
+                rgba(168, 85, 247, 0.11),
+                rgba(6, 11, 22, 0.75)
+            );
+        }
+
+        .recovery-id {
+            font-family: var(--font-mono);
+            font-size: 0.67rem;
+            color: var(--accent-violet);
+        }
+
+        .recovery-name {
+            margin-top: 5px;
+
+            font-family: var(--font-display);
+            font-size: 0.92rem;
+        }
+
+        .recovery-description {
+            margin-top: 8px;
+
+            font-size: 0.78rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .frc-banner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            padding: 12px 14px;
+            margin-bottom: 13px;
+
+            border-radius: 8px;
+        }
+
+        .frc-pass {
+            background: rgba(0, 255, 157, 0.09);
+            border: 1px solid rgba(0, 255, 157, 0.3);
+            color: var(--accent-green);
+        }
+
+        .frc-fail {
+            background: rgba(255, 51, 102, 0.1);
+            border: 1px solid rgba(255, 51, 102, 0.32);
+            color: var(--accent-red);
+        }
+
+        .frc-title {
+            font-family: var(--font-display);
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .frc-count {
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+        }
+
+        .state-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .state-box {
+            padding: 10px;
+
+            background: rgba(6, 11, 22, 0.72);
+            border: 1px solid var(--border-subtle);
+            border-radius: 7px;
+        }
+
+        .state-label {
+            font-family: var(--font-mono);
+            font-size: 0.58rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .state-value {
+            margin-top: 6px;
+
+            font-family: var(--font-mono);
+            font-size: 0.83rem;
+            font-weight: 600;
+        }
+
+        .decision-banner {
+            padding: 20px;
+
+            border-radius: 12px;
+
+            background: linear-gradient(
+                135deg,
+                rgba(0, 255, 157, 0.11),
+                rgba(6, 11, 22, 0.9)
+            );
+
+            border: 1px solid var(--accent-green);
+            box-shadow: 0 0 22px rgba(0, 255, 157, 0.12);
+        }
+
+        .decision-banner.rejected {
+            background: linear-gradient(
+                135deg,
+                rgba(255, 51, 102, 0.11),
+                rgba(6, 11, 22, 0.9)
+            );
+
+            border-color: var(--accent-red);
+            box-shadow: 0 0 22px rgba(255, 51, 102, 0.12);
+        }
+
+        .decision-label {
+            font-family: var(--font-mono);
+            font-size: 0.63rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .decision-text {
+            margin-top: 8px;
+
+            font-family: var(--font-display);
+            font-size: 1.15rem;
+            font-weight: 800;
+            letter-spacing: 0.7px;
+
+            color: var(--accent-green);
+        }
+
+        .decision-banner.rejected .decision-text {
+            color: var(--accent-red);
+        }
+
+        .analysis-overlay {
+            display: none;
+
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+
+            align-items: center;
+            justify-content: center;
+
+            background: rgba(4, 8, 16, 0.76);
+            backdrop-filter: blur(8px);
+        }
+
+        .analysis-overlay.visible {
+            display: flex;
+        }
+
+        .analysis-box {
+            width: min(470px, 90vw);
+
+            padding: 28px;
+
+            text-align: center;
+
+            background: #0b1220;
+            border: 1px solid var(--accent-cyan);
+            border-radius: 12px;
+
+            box-shadow: 0 0 35px rgba(0, 240, 255, 0.18);
+        }
+
+        .analysis-loader {
+            width: 60px;
+            height: 60px;
+
+            margin: 0 auto 20px;
+
+            border: 2px solid rgba(0, 240, 255, 0.15);
+            border-top-color: var(--accent-cyan);
+            border-radius: 50%;
+
+            animation: rotate 1.2s linear infinite;
+        }
+
+        .analysis-title {
+            font-family: var(--font-display);
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .analysis-message {
+            margin-top: 10px;
+
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .error-card {
+            padding: 16px;
+
+            background: rgba(255, 51, 102, 0.1);
+            border: 1px solid rgba(255, 51, 102, 0.4);
+            border-radius: 10px;
+
+            font-family: var(--font-mono);
+            font-size: 0.73rem;
+            line-height: 1.6;
+            color: #ff9db3;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @keyframes rotate {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 1050px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .top-strip {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 650px) {
+            .mission-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .top-strip,
+            .telemetry-grid,
+            .state-grid,
+            .pipeline-stepper {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<canvas id="starfield-canvas"></canvas>
+<div class="scanlines"></div>
+
+<div id="analysis-overlay" class="analysis-overlay">
+    <div class="analysis-box">
+        <div class="analysis-loader"></div>
+
+        <div class="analysis-title">
+            MULTI-AGENT RECOVERY ANALYSIS
+        </div>
+
+        <div class="analysis-message">
+            An anomaly event has been detected. Diagnosis, recovery
+            planning and Future Recovery Capability evaluation are
+            currently executing.
+        </div>
+    </div>
+</div>
+
+
+<div class="app-wrapper">
+
+    <header class="mission-header">
+
+        <div class="header-brand">
+
+            <div class="satellite-logo">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+                    <rect x="8" y="8" width="8" height="8" rx="2"/>
+                    <path d="m4.93 4.93 2.83 2.83
+                             M16.24 16.24l2.83 2.83
+                             M4.93 19.07l2.83-2.83
+                             M16.24 7.76l2.83-2.83"/>
+                </svg>
+            </div>
+
+            <div class="brand-text">
+                <h1>Satellite Recovery AI System</h1>
+                <p>
+                    AUTONOMOUS FAULT RECOVERY |
+                    MISSION CONTROL GROUND STATION
+                </p>
+            </div>
+
+        </div>
+
+
+        <div class="header-status">
+
+            <div class="status-pill">
+                <span class="status-dot"></span>
+                <span>LIVE TELEMETRY</span>
+            </div>
+
+            <div class="status-pill">
+                <span id="utc-clock">00:00:00 UTC</span>
+            </div>
+
+        </div>
+
+    </header>
+
+
+    <section class="top-strip">
+
+        <div class="top-stat">
+            <div class="top-stat-label">Stream Step</div>
+            <div class="top-stat-value" id="stream-step">--</div>
+        </div>
+
+        <div class="top-stat">
+            <div class="top-stat-label">Pipeline State</div>
+            <div class="top-stat-value" id="pipeline-status">
+                MONITORING
+            </div>
+        </div>
+
+        <div class="top-stat">
+            <div class="top-stat-label">Active Anomalies</div>
+            <div class="top-stat-value" id="active-fault-count">
+                0
+            </div>
+        </div>
+
+        <div class="top-stat">
+            <div class="top-stat-label">Telemetry Timestamp</div>
+            <div class="top-stat-value" id="telemetry-timestamp">
+                --
+            </div>
+        </div>
+
+    </section>
+
+
+    <main class="main-grid">
+
+        <div class="left-column">
+
+            <section class="card">
+
+                <div class="card-header">
+
+                    <div>
+                        <div class="card-title">
+                            Live Spacecraft Telemetry
+                        </div>
+
+                        <div class="card-subtitle">
+                            CURRENT AGENT-FACING SPACECRAFT STATE
+                        </div>
+                    </div>
+
+                    <span class="system-badge">
+                        DOWNLINK ACTIVE
+                    </span>
+
+                </div>
+
+
+                <div class="telemetry-grid">
+
+                    <div class="telemetry-tile">
+                        <div class="telemetry-label">
+                            Attitude Stability
+                        </div>
+
+                        <div class="telemetry-value">
+                            <span id="attitude-value">--</span>
+                            <span class="telemetry-unit">%</span>
+                        </div>
+                    </div>
+
+
+                    <div class="telemetry-tile">
+                        <div class="telemetry-label">
+                            Battery SOC
+                        </div>
+
+                        <div class="telemetry-value">
+                            <span id="battery-value">--</span>
+                            <span class="telemetry-unit">%</span>
+                        </div>
+                    </div>
+
+
+                    <div class="telemetry-tile">
+                        <div class="telemetry-label">
+                            Comm Link Quality
+                        </div>
+
+                        <div class="telemetry-value">
+                            <span id="comm-value">--</span>
+                            <span class="telemetry-unit">%</span>
+                        </div>
+                    </div>
+
+
+                    <div class="telemetry-tile">
+                        <div class="telemetry-label">
+                            Thermal Margin
+                        </div>
+
+                        <div class="telemetry-value">
+                            <span id="thermal-value">--</span>
+                        </div>
+                    </div>
+
+
+                    <div class="telemetry-tile">
+                        <div class="telemetry-label">
+                            Payload Subsystem
+                        </div>
+
+                        <div
+                            class="telemetry-value"
+                            id="payload-value"
+                            style="font-size:0.82rem;"
+                        >
+                            --
+                        </div>
+                    </div>
+
+
+                    <div class="telemetry-tile">
+                        <div class="telemetry-label">
+                            FRC Horizon
+                        </div>
+
+                        <div class="telemetry-value">
+                            <span id="horizon-value">--</span>
+                            <span class="telemetry-unit">min</span>
+                        </div>
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <section class="card">
+
+                <div class="card-header">
+
+                    <div>
+                        <div class="card-title">
+                            Subsystem Anomaly Monitor
+                        </div>
+
+                        <div class="card-subtitle">
+                            REAL-TIME FAULT DETECTION STATUS
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <div class="subsystem-list">
+
+                    <div class="subsystem-row">
+                        <span class="subsystem-name">
+                            Attitude
+                        </span>
+
+                        <span
+                            id="status-attitude"
+                            class="subsystem-status status-warmup"
+                        >
+                            WARMUP
+                        </span>
+                    </div>
+
+
+                    <div class="subsystem-row">
+                        <span class="subsystem-name">
+                            Power
+                        </span>
+
+                        <span
+                            id="status-power"
+                            class="subsystem-status status-warmup"
+                        >
+                            WARMUP
+                        </span>
+                    </div>
+
+
+                    <div class="subsystem-row">
+                        <span class="subsystem-name">
+                            Communication
+                        </span>
+
+                        <span
+                            id="status-communication"
+                            class="subsystem-status status-warmup"
+                        >
+                            WARMUP
+                        </span>
+                    </div>
+
+
+                    <div class="subsystem-row">
+                        <span class="subsystem-name">
+                            Thermal
+                        </span>
+
+                        <span
+                            id="status-thermal"
+                            class="subsystem-status status-warmup"
+                        >
+                            WARMUP
+                        </span>
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <section class="card">
+
+                <div class="card-header">
+
+                    <div>
+                        <div class="card-title">
+                            Latest Anomaly Event
+                        </div>
+
+                        <div class="card-subtitle">
+                            STRUCTURED EVENT DESCRIPTION
+                        </div>
+                    </div>
+
+                </div>
+
+                <div
+                    id="event-description"
+                    class="event-box nominal"
+                >
+                    Monitoring telemetry. No anomaly event detected.
+                </div>
+
+            </section>
+
+        </div>
+
+
+        <div class="right-column">
+
+            <div id="waiting-panel" class="waiting-panel">
+
+                <div class="monitor-ring"></div>
+
+                <h2>
+                    AUTONOMOUS MONITORING ACTIVE
+                </h2>
+
+                <p>
+                    Live spacecraft telemetry is being processed
+                    continuously. The multi-agent recovery pipeline will
+                    execute automatically when a new anomaly event is
+                    detected.
+                </p>
+
+                <div
+                    class="pipeline-state"
+                    id="waiting-pipeline-state"
+                >
+                    WAITING FOR ANOMALY EVENT
+                </div>
+
+            </div>
+
+
+            <div id="results-panel" class="hidden">
+
+                <div class="pipeline-stepper">
+
+                    <div class="pipeline-step complete">
+                        Telemetry
+                    </div>
+
+                    <div class="pipeline-step complete">
+                        Diagnosis
+                    </div>
+
+                    <div class="pipeline-step complete">
+                        Recovery
+                    </div>
+
+                    <div class="pipeline-step complete">
+                        FRC Authority
+                    </div>
+
+                </div>
+
+
+                <section class="agent-card">
+
+                    <div class="agent-card-header">
+
+                        <div>
+                            <div class="agent-title">
+                                Diagnosis ReAct Agent
+                            </div>
+
+                            <div class="agent-type">
+                                RAG RETRIEVAL AND FAULT DIAGNOSIS
+                            </div>
+                        </div>
+
+                        <div class="confidence">
+                            Confidence:
+                            <span id="diagnosis-confidence">
+                                --
+                            </span>
+                        </div>
+
+                    </div>
+
+
+                    <div class="detail">
+
+                        <div class="detail-label">
+                            Detected Fault Classification
+                        </div>
+
+                        <div
+                            id="diagnosis-fault"
+                            class="fault-badge"
+                        >
+                            --
+                        </div>
+
+                    </div>
+
+
+                    <div class="detail">
+
+                        <div class="detail-label">
+                            Telemetry and System Evidence
+                        </div>
+
+                        <div
+                            id="diagnosis-evidence"
+                            class="detail-content"
+                        >
+                            --
+                        </div>
+
+                    </div>
+
+
+                    <div class="detail">
+
+                        <div class="detail-label">
+                            Supporting Knowledge Base Documents
+                        </div>
+
+                        <div
+                            id="diagnosis-docs"
+                            class="chips"
+                        ></div>
+
+                    </div>
+
+                </section>
+
+
+                <section class="agent-card">
+
+                    <div class="agent-card-header">
+
+                        <div>
+                            <div class="agent-title">
+                                Recovery ReAct Agent
+                            </div>
+
+                            <div class="agent-type">
+                                PROCEDURE SELECTION AND RECOVERY PLANNING
+                            </div>
+                        </div>
+
+                        <span
+                            id="recovery-procedure-badge"
+                            class="system-badge"
+                        >
+                            --
+                        </span>
+
+                    </div>
+
+
+                    <div
+                        id="recovery-plan"
+                        class="recovery-plan"
+                    >
+
+                        <div
+                            id="recovery-id"
+                            class="recovery-id"
+                        >
+                            --
+                        </div>
+
+                        <div
+                            id="recovery-name"
+                            class="recovery-name"
+                        >
+                            --
+                        </div>
+
+                        <div
+                            id="recovery-description"
+                            class="recovery-description"
+                        >
+                            --
+                        </div>
+
+                    </div>
+
+
+                    <div class="detail">
+
+                        <div class="detail-label">
+                            Agent Reasoning
+                        </div>
+
+                        <div
+                            id="recovery-reasoning"
+                            class="detail-content"
+                        >
+                            --
+                        </div>
+
+                    </div>
+
+
+                    <div class="detail">
+
+                        <div class="detail-label">
+                            Alternative Procedures Considered
+                        </div>
+
+                        <div
+                            id="recovery-alternatives"
+                            class="chips"
+                        ></div>
+
+                    </div>
+
+                </section>
+
+
+                <section class="agent-card">
+
+                    <div class="agent-card-header">
+
+                        <div>
+                            <div class="agent-title">
+                                FRC Safety Authority
+                            </div>
+
+                            <div class="agent-type">
+                                INDEPENDENT FUTURE RECOVERY CAPABILITY
+                                VERIFICATION
+                            </div>
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        id="frc-banner"
+                        class="frc-banner frc-pass"
+                    >
+
+                        <span
+                            id="frc-status"
+                            class="frc-title"
+                        >
+                            --
+                        </span>
+
+                        <span
+                            id="frc-violations-count"
+                            class="frc-count"
+                        >
+                            --
+                        </span>
+
+                    </div>
+
+
+                    <div class="detail">
+
+                        <div class="detail-label">
+                            Violated Dimensions
+                        </div>
+
+                        <div
+                            id="frc-violations"
+                            class="chips"
+                        ></div>
+
+                    </div>
+
+
+                    <div class="detail">
+
+                        <div class="detail-label">
+                            Predicted Final Spacecraft State
+                        </div>
+
+                        <div class="state-grid">
+
+                            <div class="state-box">
+                                <div class="state-label">
+                                    Battery SOC
+                                </div>
+                                <div
+                                    id="final-battery"
+                                    class="state-value"
+                                >
+                                    --
+                                </div>
+                            </div>
+
+
+                            <div class="state-box">
+                                <div class="state-label">
+                                    Attitude
+                                </div>
+                                <div
+                                    id="final-attitude"
+                                    class="state-value"
+                                >
+                                    --
+                                </div>
+                            </div>
+
+
+                            <div class="state-box">
+                                <div class="state-label">
+                                    Comm Link
+                                </div>
+                                <div
+                                    id="final-comm"
+                                    class="state-value"
+                                >
+                                    --
+                                </div>
+                            </div>
+
+
+                            <div class="state-box">
+                                <div class="state-label">
+                                    Thermal Margin
+                                </div>
+                                <div
+                                    id="final-thermal"
+                                    class="state-value"
+                                >
+                                    --
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <section
+                    id="decision-banner"
+                    class="decision-banner"
+                >
+
+                    <div class="decision-label">
+                        Final Multi-Agent Recovery Decision
+                    </div>
+
+                    <div
+                        id="final-decision"
+                        class="decision-text"
+                    >
+                        --
+                    </div>
+
+                </section>
+
+            </div>
+
+
+            <div
+                id="error-panel"
+                class="error-card hidden"
+            ></div>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<script>
+
+    let previousPipelineStatus = null;
+
+
+    function formatNumber(value, digits = 1) {
+
+        if (
+            value === null ||
+            value === undefined ||
+            Number.isNaN(Number(value))
+        ) {
+            return "--";
+        }
+
+        return Number(value).toFixed(digits);
+    }
+
+
+    function setSubsystemStatus(subsystem, status) {
+
+        const element = document.getElementById(
+            "status-" + subsystem
+        );
+
+        if (!element) {
+            return;
+        }
+
+        element.textContent = status;
+
+        element.className = "subsystem-status";
+
+        if (status === "ANOMALY") {
+            element.classList.add("status-anomaly");
+        }
+        else if (status === "WARMUP") {
+            element.classList.add("status-warmup");
+        }
+        else {
+            element.classList.add("status-normal");
+        }
+    }
+
+
+    function makeChips(containerId, values) {
+
+        const container = document.getElementById(
+            containerId
+        );
+
+        container.innerHTML = "";
+
+        if (!values || values.length === 0) {
+
+            const chip = document.createElement("span");
+
+            chip.className = "chip";
+            chip.textContent = "NONE";
+
+            container.appendChild(chip);
+
+            return;
+        }
+
+        values.forEach(value => {
+
+            const chip = document.createElement("span");
+
+            chip.className = "chip";
+            chip.textContent = value;
+
+            container.appendChild(chip);
+        });
+    }
+
+
+    function updateTelemetry(data) {
+
+        const state = data.agent_state || {};
+
+        document.getElementById(
+            "stream-step"
+        ).textContent = data.step ?? "--";
+
+        document.getElementById(
+            "pipeline-status"
+        ).textContent = data.pipeline_status || "MONITORING";
+
+        document.getElementById(
+            "active-fault-count"
+        ).textContent = data.active_fault_count ?? 0;
+
+        document.getElementById(
+            "telemetry-timestamp"
+        ).textContent = data.timestamp || "--";
+
+
+        document.getElementById(
+            "attitude-value"
+        ).textContent = formatNumber(
+            state.attitude_stability_percent
+        );
+
+        document.getElementById(
+            "battery-value"
+        ).textContent = formatNumber(
+            state.battery_soc_percent
+        );
+
+        document.getElementById(
+            "comm-value"
+        ).textContent = formatNumber(
+            state.communication_link_quality_percent
+        );
+
+        document.getElementById(
+            "thermal-value"
+        ).textContent = formatNumber(
+            state.thermal_margin
+        );
+
+        document.getElementById(
+            "payload-value"
+        ).textContent =
+            state.payload_subsystem || "--";
+
+        document.getElementById(
+            "horizon-value"
+        ).textContent =
+            state.frc_horizon_minutes ?? "--";
+
+
+        const subsystems = data.subsystems || {};
+
+        setSubsystemStatus(
+            "attitude",
+            subsystems.attitude || "WARMUP"
+        );
+
+        setSubsystemStatus(
+            "power",
+            subsystems.power || "WARMUP"
+        );
+
+        setSubsystemStatus(
+            "communication",
+            subsystems.communication || "WARMUP"
+        );
+
+        setSubsystemStatus(
+            "thermal",
+            subsystems.thermal || "WARMUP"
+        );
+
+
+        const eventBox = document.getElementById(
+            "event-description"
+        );
+
+        if (data.anomaly_description) {
+
+            eventBox.textContent =
+                data.anomaly_description;
+
+            eventBox.className =
+                "event-box anomaly";
+        }
+        else if (data.anomaly_active) {
+
+            const affected =
+                data.affected_subsystems || [];
+
+            eventBox.textContent =
+                "Anomaly detected in subsystem(s): " +
+                affected.join(", ") +
+                ". Recovery analysis is pending.";
+
+            eventBox.className =
+                "event-box anomaly";
+        }
+        else {
+
+            eventBox.textContent =
+                "Monitoring telemetry. No anomaly event detected.";
+
+            eventBox.className =
+                "event-box nominal";
+        }
+    }
+
+
+    function updatePipeline(data) {
+
+        const overlay = document.getElementById(
+            "analysis-overlay"
+        );
+
+        const waitingPanel = document.getElementById(
+            "waiting-panel"
+        );
+
+        const resultsPanel = document.getElementById(
+            "results-panel"
+        );
+
+        const waitingState = document.getElementById(
+            "waiting-pipeline-state"
+        );
+
+
+        if (data.pipeline_status === "ANALYZING") {
+
+            overlay.classList.add("visible");
+
+            waitingState.textContent =
+                "ANOMALY DETECTED - AGENTS EXECUTING";
+        }
+        else {
+
+            overlay.classList.remove("visible");
+
+            if (!data.anomaly_active) {
+
+                waitingState.textContent =
+                    "WAITING FOR ANOMALY EVENT";
+            }
+        }
+
+
+        if (!data.pipeline_result) {
+
+            resultsPanel.classList.add("hidden");
+            waitingPanel.classList.remove("hidden");
+
+            return;
+        }
+
+
+        waitingPanel.classList.add("hidden");
+        resultsPanel.classList.remove("hidden");
+
+
+        const result = data.pipeline_result;
+
+        const diagnosis = result.diagnosis || {};
+        const recovery = result.recovery || {};
+        const frc = result.frc || {};
+        const recoveryPlan = data.recovery_plan || {};
+
+
+        document.getElementById(
+            "diagnosis-confidence"
+        ).textContent =
+            diagnosis.confidence !== undefined
+                ? Math.round(
+                    diagnosis.confidence * 100
+                ) + "%"
+                : "--";
+
+
+        document.getElementById(
+            "diagnosis-fault"
+        ).textContent =
+            diagnosis.fault_type || "--";
+
+
+        document.getElementById(
+            "diagnosis-evidence"
+        ).textContent =
+            diagnosis.evidence || "--";
+
+
+        makeChips(
+            "diagnosis-docs",
+            diagnosis.supporting_doc_ids || []
+        );
+
+
+        document.getElementById(
+            "recovery-procedure-badge"
+        ).textContent =
+            recovery.selected_procedure_id || "--";
+
+
+        document.getElementById(
+            "recovery-id"
+        ).textContent =
+            recoveryPlan.procedure_id || "--";
+
+
+        document.getElementById(
+            "recovery-name"
+        ).textContent =
+            recoveryPlan.name ||
+            "No recovery procedure selected";
+
+
+        document.getElementById(
+            "recovery-description"
+        ).textContent =
+            recoveryPlan.description || "--";
+
+
+        document.getElementById(
+            "recovery-reasoning"
+        ).textContent =
+            recovery.reasoning || "--";
+
+
+        makeChips(
+            "recovery-alternatives",
+            recovery.alternatives_considered || []
+        );
+
+
+        const frcBanner = document.getElementById(
+            "frc-banner"
+        );
+
+        if (frc.passes) {
+
+            frcBanner.className =
+                "frc-banner frc-pass";
+
+            document.getElementById(
+                "frc-status"
+            ).textContent =
+                "FRC SAFETY CHECK PASSED";
+        }
+        else {
+
+            frcBanner.className =
+                "frc-banner frc-fail";
+
+            document.getElementById(
+                "frc-status"
+            ).textContent =
+                "FRC SAFETY CHECK FAILED";
+        }
+
+
+        document.getElementById(
+            "frc-violations-count"
+        ).textContent =
+            "Violations: " +
+            (frc.violation_count ?? 0) +
+            " / " +
+            (frc.max_violation_count ?? "--");
+
+
+        makeChips(
+            "frc-violations",
+            frc.violated_dimensions || []
+        );
+
+
+        const finalState = frc.final_state || {};
+
+        document.getElementById(
+            "final-battery"
+        ).textContent =
+            formatNumber(
+                finalState.battery_soc
+            ) + "%";
+
+
+        document.getElementById(
+            "final-attitude"
+        ).textContent =
+            formatNumber(
+                finalState.attitude_stability
+            ) + "%";
+
+
+        document.getElementById(
+            "final-comm"
+        ).textContent =
+            formatNumber(
+                finalState.comm_link_quality
+            ) + "%";
+
+
+        document.getElementById(
+            "final-thermal"
+        ).textContent =
+            formatNumber(
+                finalState.thermal_margin
+            );
+
+
+        const decisionBanner = document.getElementById(
+            "decision-banner"
+        );
+
+        const finalDecision =
+            result.final_decision || "--";
+
+
+        document.getElementById(
+            "final-decision"
+        ).textContent = finalDecision;
+
+
+        if (
+            finalDecision
+                .toUpperCase()
+                .includes("AUTHORIZED")
+        ) {
+
+            decisionBanner.className =
+                "decision-banner";
+        }
+        else {
+
+            decisionBanner.className =
+                "decision-banner rejected";
+        }
+    }
+
+
+    function updateError(data) {
+
+        const panel = document.getElementById(
+            "error-panel"
+        );
+
+        if (data.error) {
+
+            panel.textContent =
+                "Pipeline error: " + data.error;
+
+            panel.classList.remove("hidden");
+        }
+        else {
+
+            panel.classList.add("hidden");
+        }
+    }
+
+
+    async function fetchTelemetry() {
+
+        try {
+
+            const response = await fetch(
+                "/api/telemetry",
+                {
+                    cache: "no-store"
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    "Telemetry endpoint returned " +
+                    response.status
+                );
+            }
+
+            const data = await response.json();
+
+            updateTelemetry(data);
+            updatePipeline(data);
+            updateError(data);
+
+            previousPipelineStatus =
+                data.pipeline_status;
+        }
+        catch (error) {
+
+            const panel = document.getElementById(
+                "error-panel"
+            );
+
+            panel.textContent =
+                "Unable to receive telemetry from Flask: " +
+                error.message;
+
+            panel.classList.remove("hidden");
+        }
+    }
+
+
+    function updateUTCClock() {
+
+        const now = new Date();
+
+        document.getElementById(
+            "utc-clock"
+        ).textContent =
+            now.toUTCString().split(" ")[4] +
+            " UTC";
+    }
+
+
+    setInterval(
+        updateUTCClock,
+        1000
+    );
+
+    updateUTCClock();
+
+
+    fetchTelemetry();
+
+    setInterval(
+        fetchTelemetry,
+        500
+    );
+
+
+    (function initialiseStarfield() {
+
+        const canvas = document.getElementById(
+            "starfield-canvas"
+        );
+
+        const ctx = canvas.getContext("2d");
+
+        let width;
+        let height;
+        let stars = [];
+
+
+        function resize() {
+
+            width = canvas.width =
+                window.innerWidth;
+
+            height = canvas.height =
+                window.innerHeight;
+
+            stars = [];
+
+            for (let i = 0; i < 90; i++) {
+
+                stars.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    radius:
+                        Math.random() * 1.4 + 0.4,
+                    alpha:
+                        Math.random() * 0.7 + 0.2,
+                    speed:
+                        Math.random() * 0.15 + 0.04
+                });
+            }
+        }
+
+
+        function draw() {
+
+            ctx.clearRect(
+                0,
+                0,
+                width,
+                height
+            );
+
+            ctx.fillStyle = "#ffffff";
+
+
+            for (const star of stars) {
+
+                ctx.save();
+
+                ctx.globalAlpha =
+                    star.alpha;
+
+                ctx.beginPath();
+
+                ctx.arc(
+                    star.x,
+                    star.y,
+                    star.radius,
+                    0,
+                    Math.PI * 2
+                );
+
+                ctx.fill();
+
+                ctx.restore();
+
+
+                star.y -= star.speed;
+
+                if (star.y < 0) {
+                    star.y = height;
+                }
+            }
+
+
+            requestAnimationFrame(draw);
+        }
+
+
+        window.addEventListener(
+            "resize",
+            resize
+        );
+
+        resize();
+        draw();
+
+    })();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+    "subsystem": "thermal",
+    "model_type": "OneClassSVM",
+    "kernel": "rbf",
+    "nu": 0.01,
+    "gamma": 0.01,
+    "threshold": 0.0012194647394445403,
+    "window_size": 10,
+    "gap_threshold_minutes": 3,
+    "input_channels": [
+        "HD_Cam_Temp",
+        "ACU2_Temp",
+        "NanoMind_Temp",
+        "SDR_Temp",
+        "SEPP_Temp"
+    ],
+    "model_channels": [
+        "ACU2_Temp",
+        "NanoMind_Temp",
+        "SEPP_Temp"
+    ],
+    "feature_count": 21,
+    "feature_version": "thermal_dynamic_v2",
+    "score_direction": "higher_is_more_anomalous"
+}

@@ -1,0 +1,2016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satellite Recovery AI System | Autonomous Mission Control</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-space: #070b14;
+            --bg-surface: rgba(13, 20, 36, 0.75);
+            --bg-surface-elevated: rgba(20, 32, 56, 0.85);
+            --bg-card: rgba(15, 23, 42, 0.8);
+            --border-glow: rgba(56, 189, 248, 0.25);
+            --border-subtle: rgba(56, 189, 248, 0.12);
+            --accent-cyan: #00f0ff;
+            --accent-blue: #38bdf8;
+            --accent-emerald: #00ff9d;
+            --accent-amber: #f59e0b;
+            --accent-rose: #ff3366;
+            --accent-violet: #a855f7;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --font-display: 'Orbitron', 'Rajdhani', sans-serif;
+            --font-body: 'Inter', -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --glow-cyan: 0 0 20px rgba(0, 240, 255, 0.35);
+            --glow-emerald: 0 0 25px rgba(0, 255, 157, 0.4);
+            --glow-rose: 0 0 25px rgba(255, 51, 102, 0.45);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg-space);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(14, 165, 233, 0.15) 0%, transparent 60%),
+                radial-gradient(circle at 10% 30%, rgba(168, 85, 247, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(0, 240, 255, 0.08) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        /* Starfield & Telemetry Grid Canvas */
+        #starfield-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.65;
+        }
+
+        /* Scanline Overlay Effect */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0.35;
+        }
+
+        .app-wrapper {
+            position: relative;
+            z-index: 2;
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 24px 20px 60px;
+        }
+
+        /* TOP HUD NAV BAR */
+        .mission-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            background: var(--bg-surface);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glow);
+            border-radius: 14px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .satellite-logo {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(56, 189, 248, 0.05));
+            border: 1px solid var(--accent-cyan);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--glow-cyan);
+            animation: pulse-border 3s infinite;
+        }
+
+        .satellite-logo svg {
+            width: 28px;
+            height: 28px;
+            fill: none;
+            stroke: var(--accent-cyan);
+            stroke-width: 1.75;
+        }
+
+        .brand-text h1 {
+            font-family: var(--font-display);
+            font-size: 1.35rem;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            background: linear-gradient(90deg, #ffffff 0%, var(--accent-cyan) 60%, var(--accent-blue) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+        }
+
+        .brand-text p {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+        }
+
+        .header-telemetry-status {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .hud-metric-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.35);
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border-subtle);
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-emerald);
+            box-shadow: 0 0 10px var(--accent-emerald);
+            animation: blink 2s infinite ease-in-out;
+        }
+
+        .audio-toggle-btn {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .audio-toggle-btn:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        /* SCENARIO PRESETS BAR */
+        .presets-section {
+            background: var(--bg-surface);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .presets-label {
+            font-family: var(--font-display);
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .preset-btn {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: var(--font-body);
+        }
+
+        .preset-btn:hover {
+            border-color: var(--accent-cyan);
+            color: #ffffff;
+            background: rgba(0, 240, 255, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .preset-btn.active {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            background: rgba(0, 240, 255, 0.15);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        /* MAIN COCKPIT GRID */
+        .cockpit-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        @media (min-width: 1024px) {
+            .cockpit-grid.has-results {
+                grid-template-columns: 480px 1fr;
+            }
+        }
+
+        /* TELEMETRY CARD */
+        .telemetry-card {
+            background: var(--bg-surface);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glow);
+            border-radius: 16px;
+            padding: 24px;
+            position: relative;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+            transition: border-color 0.3s ease;
+        }
+
+        /* Aerospace Corner HUD Accents */
+        .hud-corner {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-color: var(--accent-cyan);
+            pointer-events: none;
+        }
+        .hud-corner-tl { top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; border-top-left-radius: 4px; }
+        .hud-corner-tr { top: -1px; right: -1px; border-top: 2px solid; border-right: 2px solid; border-top-right-radius: 4px; }
+        .hud-corner-bl { bottom: -1px; left: -1px; border-bottom: 2px solid; border-left: 2px solid; border-bottom-left-radius: 4px; }
+        .hud-corner-br { bottom: -1px; right: -1px; border-bottom: 2px solid; border-right: 2px solid; border-bottom-right-radius: 4px; }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .card-title svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--accent-cyan);
+        }
+
+        .system-badge {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent-blue);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        /* FORM ELEMENTS */
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .field-label-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .field-label {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .field-health-tag {
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .tag-nominal {
+            background: rgba(0, 255, 157, 0.12);
+            color: var(--accent-emerald);
+            border: 1px solid rgba(0, 255, 157, 0.3);
+        }
+
+        .tag-warning {
+            background: rgba(245, 158, 11, 0.12);
+            color: var(--accent-amber);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .tag-critical {
+            background: rgba(255, 51, 102, 0.12);
+            color: var(--accent-rose);
+            border: 1px solid rgba(255, 51, 102, 0.3);
+        }
+
+        /* Interactive Telemetry Inputs */
+        .telemetry-input-wrap {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .telemetry-input-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .input-number-box {
+            flex: 1;
+            background: rgba(6, 11, 22, 0.85);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: #ffffff;
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            font-weight: 600;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .input-number-box:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.25);
+            background: rgba(6, 11, 22, 0.95);
+        }
+
+        /* Range Slider */
+        .slider-bar {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            outline: none;
+            margin-top: 2px;
+        }
+
+        .slider-bar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent-cyan);
+            transition: transform 0.15s ease;
+        }
+
+        .slider-bar::-webkit-slider-thumb:hover {
+            transform: scale(1.25);
+        }
+
+        /* Textarea terminal style */
+        .telemetry-textarea {
+            width: 100%;
+            height: 95px;
+            background: rgba(6, 11, 22, 0.85);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 12px 14px;
+            color: #ffffff;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.5;
+            resize: vertical;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .telemetry-textarea:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.25);
+        }
+
+        /* Custom Selector */
+        .telemetry-select {
+            width: 100%;
+            background: rgba(6, 11, 22, 0.85);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: #ffffff;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .telemetry-select:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.25);
+        }
+
+        .telemetry-select option {
+            background: #090e1a;
+            color: #ffffff;
+        }
+
+        /* Dual Column Subsystem Layout */
+        .subsystem-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        @media (max-width: 600px) {
+            .subsystem-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* LAUNCH RECOVERY BUTTON */
+        .submit-btn {
+            position: relative;
+            width: 100%;
+            margin-top: 10px;
+            padding: 16px 24px;
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.2) 0%, rgba(14, 165, 233, 0.2) 100%);
+            border: 1px solid var(--accent-cyan);
+            border-radius: 10px;
+            color: #ffffff;
+            font-family: var(--font-display);
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: var(--glow-cyan);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .submit-btn:hover {
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.35) 0%, rgba(14, 165, 233, 0.35) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.6);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--accent-cyan);
+            transition: transform 0.2s ease;
+        }
+
+        .submit-btn:hover svg {
+            transform: scale(1.15) rotate(-10deg);
+        }
+
+        /* RESULTS SECTION */
+        .results-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Pipeline Stepper */
+        .pipeline-stepper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-surface);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 12px 18px;
+            overflow-x: auto;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .step-item.active {
+            color: var(--accent-cyan);
+            font-weight: 600;
+        }
+
+        .step-item.completed {
+            color: var(--accent-emerald);
+        }
+
+        .step-badge {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+        }
+
+        .step-item.active .step-badge {
+            background: rgba(0, 240, 255, 0.15);
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+        }
+
+        .step-item.completed .step-badge {
+            background: rgba(0, 255, 157, 0.15);
+            border-color: var(--accent-emerald);
+            color: var(--accent-emerald);
+        }
+
+        .step-arrow {
+            color: var(--border-subtle);
+            font-size: 0.8rem;
+        }
+
+        /* Agent Cards */
+        .agent-card {
+            background: var(--bg-surface);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glow);
+            border-radius: 14px;
+            padding: 22px;
+            position: relative;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .agent-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .agent-name-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .agent-icon-wrap {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-diagnosis {
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            color: var(--accent-cyan);
+        }
+
+        .icon-recovery {
+            background: rgba(168, 85, 247, 0.15);
+            border: 1px solid rgba(168, 85, 247, 0.35);
+            color: var(--accent-violet);
+        }
+
+        .icon-safety {
+            background: rgba(0, 255, 157, 0.15);
+            border: 1px solid rgba(0, 255, 157, 0.35);
+            color: var(--accent-emerald);
+        }
+
+        .agent-title-text h3 {
+            font-family: var(--font-display);
+            font-size: 1rem;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+
+        .agent-title-text span {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .confidence-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(6, 11, 22, 0.6);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border-subtle);
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+        }
+
+        .confidence-val {
+            color: var(--accent-cyan);
+            font-weight: 700;
+        }
+
+        /* Diagnosis Grid */
+        .diagnosis-details-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+        }
+
+        .detail-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .detail-title {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .fault-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 51, 102, 0.15);
+            border: 1px solid rgba(255, 51, 102, 0.4);
+            color: #ff6b8b;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            width: fit-content;
+        }
+
+        .evidence-terminal {
+            background: rgba(6, 11, 22, 0.9);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            line-height: 1.6;
+            color: #e2e8f0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            position: relative;
+        }
+
+        .chips-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .kb-chip {
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            color: var(--accent-blue);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .procedure-chip {
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            color: var(--accent-violet);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* RECOVERY PLAN HIGHLIGHT CARD */
+        .recovery-plan-card {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(168, 85, 247, 0.1) 100%);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            border-left: 4px solid var(--accent-cyan);
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin: 12px 0;
+            box-shadow: 0 4px 20px rgba(0, 240, 255, 0.1);
+        }
+
+        .plan-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .plan-title {
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+        }
+
+        .plan-badge {
+            background: var(--accent-cyan);
+            color: #060b14;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 800;
+            padding: 3px 10px;
+            border-radius: 4px;
+        }
+
+        .plan-desc {
+            font-size: 0.85rem;
+            line-height: 1.55;
+            color: #cbd5e1;
+        }
+
+        /* FRC SAFETY AUTHORITY HUD */
+        .frc-status-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+        }
+
+        .frc-passed {
+            background: rgba(0, 255, 157, 0.12);
+            border: 1px solid rgba(0, 255, 157, 0.4);
+            box-shadow: var(--glow-emerald);
+        }
+
+        .frc-failed {
+            background: rgba(255, 51, 102, 0.15);
+            border: 1px solid rgba(255, 51, 102, 0.45);
+            box-shadow: var(--glow-rose);
+        }
+
+        .frc-eval-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .frc-passed .frc-eval-title {
+            color: var(--accent-emerald);
+        }
+
+        .frc-failed .frc-eval-title {
+            color: var(--accent-rose);
+        }
+
+        .violations-counter {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .violations-counter strong {
+            color: #ffffff;
+        }
+
+        /* TELEMETRY COMPARISON MATRIX */
+        .matrix-title {
+            font-family: var(--font-display);
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin: 16px 0 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .state-matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .state-tile {
+            background: rgba(6, 11, 22, 0.7);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            transition: border-color 0.2s ease;
+        }
+
+        .state-tile:hover {
+            border-color: var(--accent-cyan);
+        }
+
+        .state-tile-label {
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .state-tile-value {
+            font-family: var(--font-mono);
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #ffffff;
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+        }
+
+        .state-delta {
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+
+        .delta-positive {
+            color: var(--accent-emerald);
+            background: rgba(0, 255, 157, 0.12);
+        }
+
+        .delta-neutral {
+            color: var(--accent-blue);
+            background: rgba(56, 189, 248, 0.12);
+        }
+
+        .delta-negative {
+            color: var(--accent-rose);
+            background: rgba(255, 51, 102, 0.12);
+        }
+
+        /* FINAL MULTI-AGENT DECISION BANNER */
+        .decision-banner {
+            border-radius: 14px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .decision-banner.decision-authorized {
+            background: linear-gradient(135deg, rgba(0, 255, 157, 0.15) 0%, rgba(6, 11, 22, 0.9) 100%);
+            border: 2px solid var(--accent-emerald);
+            box-shadow: var(--glow-emerald);
+        }
+
+        .decision-banner.decision-rejected {
+            background: linear-gradient(135deg, rgba(255, 51, 102, 0.15) 0%, rgba(6, 11, 22, 0.9) 100%);
+            border: 2px solid var(--accent-rose);
+            box-shadow: var(--glow-rose);
+        }
+
+        .decision-headline-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .decision-badge-text {
+            font-family: var(--font-display);
+            font-size: 0.8rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .decision-banner.decision-authorized .decision-badge-text {
+            color: var(--accent-emerald);
+        }
+
+        .decision-banner.decision-rejected .decision-badge-text {
+            color: var(--accent-rose);
+        }
+
+        .decision-main-text {
+            font-family: var(--font-display);
+            font-size: 1.35rem;
+            font-weight: 900;
+            color: #ffffff;
+            letter-spacing: 1px;
+        }
+
+        .decision-subtext {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* ACTIONS FOOTER */
+        .actions-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+
+        .action-chip-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .action-chip-btn:hover {
+            border-color: var(--accent-cyan);
+            color: #ffffff;
+            background: rgba(0, 240, 255, 0.1);
+        }
+
+        /* PIPELINE ERROR */
+        .error-card {
+            background: rgba(255, 51, 102, 0.1);
+            border: 1px solid var(--accent-rose);
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: var(--glow-rose);
+        }
+
+        .error-card h2 {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            color: var(--accent-rose);
+            margin-bottom: 10px;
+        }
+
+        /* RADAR SCANNER LOADING OVERLAY */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(6, 11, 20, 0.88);
+            backdrop-filter: blur(12px);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+        }
+
+        .radar-box {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            border: 2px solid rgba(0, 240, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.2);
+        }
+
+        .radar-sweep {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, rgba(0, 240, 255, 0.4) 0deg, transparent 60deg, transparent 360deg);
+            animation: radar-spin 1.8s linear infinite;
+        }
+
+        .radar-center-dot {
+            width: 12px;
+            height: 12px;
+            background: var(--accent-cyan);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--accent-cyan);
+        }
+
+        .loading-title {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .loading-status-log {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--accent-cyan);
+            height: 24px;
+            text-align: center;
+        }
+
+        /* ANIMATIONS */
+        @keyframes pulse-border {
+            0%, 100% { border-color: var(--accent-cyan); box-shadow: var(--glow-cyan); }
+            50% { border-color: rgba(0, 240, 255, 0.4); box-shadow: 0 0 10px rgba(0, 240, 255, 0.2); }
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.3; transform: scale(0.85); }
+        }
+
+        @keyframes radar-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Dynamic Space Canvas -->
+    <canvas id="starfield-canvas"></canvas>
+    
+    <!-- CRT Scanline Effect -->
+    <div class="scanlines"></div>
+
+    <!-- Loading Modal Overlay -->
+    <div id="loading-overlay">
+        <div class="radar-box">
+            <div class="radar-sweep"></div>
+            <div class="radar-center-dot"></div>
+        </div>
+        <div class="loading-title">EXECUTING MULTI-AGENT RECOVERY</div>
+        <div class="loading-status-log" id="loading-log">Connecting to spacecraft telemetry downlink...</div>
+    </div>
+
+    <div class="app-wrapper">
+        
+        <!-- ================================================= -->
+        <!-- TOP HUD MISSION HEADER -->
+        <!-- ================================================= -->
+        <header class="mission-header">
+            <div class="header-brand">
+                <div class="satellite-logo">
+                    <!-- Satellite SVG Icon -->
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+                        <rect x="8" y="8" width="8" height="8" rx="2" />
+                        <path d="m4.93 4.93 2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>Satellite Recovery AI System</h1>
+                    <p>AUTONOMOUS FAULT RECOVERY (SAFR) • MISSION CONTROL GROUND STATION</p>
+                </div>
+            </div>
+
+            <div class="header-telemetry-status">
+                <div class="hud-metric-pill">
+                    <span class="status-dot"></span>
+                    <span id="utc-clock">UTC 00:00:00</span>
+                </div>
+                <div class="hud-metric-pill" style="display: none; @media(min-width:768px){display:flex;}">
+                    <span>ORBIT:</span> <strong style="color:var(--accent-cyan);">LEO 550KM</strong>
+                </div>
+                <button type="button" class="audio-toggle-btn" id="audio-btn" onclick="toggleAudioFeedback()">
+                    <span id="audio-icon">🔊</span> AUDIO: <span id="audio-state">ON</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- ================================================= -->
+        <!-- QUICK TELEMETRY PRESETS TOOLBAR -->
+        <!-- ================================================= -->
+        <div class="presets-section">
+            <div class="presets-label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+                Emergency Presets:
+            </div>
+            
+            <button type="button" class="preset-btn" onclick="loadPreset('attitude_power')">
+                🛰️ Attitude Drift & Low Power
+            </button>
+            <button type="button" class="preset-btn" onclick="loadPreset('battery_critical')">
+                🔋 Critical Battery Depletion
+            </button>
+            <button type="button" class="preset-btn" onclick="loadPreset('comm_loss')">
+                📡 Deep Space Comm Degradation
+            </button>
+            <button type="button" class="preset-btn" onclick="loadPreset('thermal_excursion')">
+                🌡️ Thermal Excursion Alarm
+            </button>
+            <button type="button" class="preset-btn" onclick="loadPreset('default')">
+                ↺ Default State
+            </button>
+        </div>
+
+        <!-- ================================================= -->
+        <!-- COCKPIT GRID: INPUT FORM & RESULTS -->
+        <!-- ================================================= -->
+        <main class="cockpit-grid {% if result or error %}has-results{% endif %}">
+            
+            <!-- LEFT PANEL: SPACECRAFT TELEMETRY INPUT -->
+            <section class="telemetry-card">
+                <div class="hud-corner hud-corner-tl"></div>
+                <div class="hud-corner hud-corner-tr"></div>
+                <div class="hud-corner hud-corner-bl"></div>
+                <div class="hud-corner hud-corner-br"></div>
+
+                <div class="card-header">
+                    <div class="card-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                        </svg>
+                        Spacecraft Telemetry Ingest
+                    </div>
+                    <span class="system-badge">DOWNLINK ACTIVE</span>
+                </div>
+
+                <form method="POST" id="recovery-form" onsubmit="handleFormSubmit()">
+
+                    <!-- Anomaly Description -->
+                    <div class="form-group">
+                        <div class="field-label-row">
+                            <label class="field-label" for="anomaly">
+                                <span>⚠️</span> Anomaly Event Description
+                            </label>
+                            <span class="field-health-tag tag-warning">EVENT LOG</span>
+                        </div>
+                        <textarea
+                            id="anomaly"
+                            name="anomaly"
+                            class="telemetry-textarea"
+                            required
+                            placeholder="Example: Attitude stability dropped while battery SOC is marginal."
+                        >{{ request.form.get('anomaly', '') if request.method == 'POST' else 'Attitude stability dropped while battery SOC is marginal.' }}</textarea>
+                    </div>
+
+                    <!-- Dual Column Telemetry Metrics -->
+                    <div class="subsystem-grid">
+
+                        <!-- Attitude Stability -->
+                        <div class="form-group">
+                            <div class="field-label-row">
+                                <label class="field-label" for="attitude_stability">
+                                    Attitude Stability (%)
+                                </label>
+                                <span class="field-health-tag" id="attitude-tag">NOMINAL</span>
+                            </div>
+                            <div class="telemetry-input-wrap">
+                                <div class="telemetry-input-row">
+                                    <input
+                                        type="number"
+                                        id="attitude_stability"
+                                        name="attitude_stability"
+                                        class="input-number-box"
+                                        value="{{ request.form.get('attitude_stability', '60') if request.method == 'POST' else '60' }}"
+                                        min="0"
+                                        max="100"
+                                        step="0.1"
+                                        required
+                                        oninput="syncSlider('attitude_stability', 'attitude_slider')"
+                                    >
+                                </div>
+                                <input
+                                    type="range"
+                                    id="attitude_slider"
+                                    class="slider-bar"
+                                    min="0"
+                                    max="100"
+                                    step="0.1"
+                                    value="{{ request.form.get('attitude_stability', '60') if request.method == 'POST' else '60' }}"
+                                    oninput="syncNumber('attitude_slider', 'attitude_stability')"
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Battery SOC -->
+                        <div class="form-group">
+                            <div class="field-label-row">
+                                <label class="field-label" for="battery_soc">
+                                    Battery SOC (%)
+                                </label>
+                                <span class="field-health-tag" id="battery-tag">MARGINAL</span>
+                            </div>
+                            <div class="telemetry-input-wrap">
+                                <div class="telemetry-input-row">
+                                    <input
+                                        type="number"
+                                        id="battery_soc"
+                                        name="battery_soc"
+                                        class="input-number-box"
+                                        value="{{ request.form.get('battery_soc', '22') if request.method == 'POST' else '22' }}"
+                                        min="0"
+                                        max="100"
+                                        step="0.1"
+                                        required
+                                        oninput="syncSlider('battery_soc', 'battery_slider')"
+                                    >
+                                </div>
+                                <input
+                                    type="range"
+                                    id="battery_slider"
+                                    class="slider-bar"
+                                    min="0"
+                                    max="100"
+                                    step="0.1"
+                                    value="{{ request.form.get('battery_soc', '22') if request.method == 'POST' else '22' }}"
+                                    oninput="syncNumber('battery_slider', 'battery_soc')"
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Communication Link Quality -->
+                        <div class="form-group">
+                            <div class="field-label-row">
+                                <label class="field-label" for="comm_link_quality">
+                                    Comm Link Quality (%)
+                                </label>
+                                <span class="field-health-tag" id="comm-tag">NOMINAL</span>
+                            </div>
+                            <div class="telemetry-input-wrap">
+                                <div class="telemetry-input-row">
+                                    <input
+                                        type="number"
+                                        id="comm_link_quality"
+                                        name="comm_link_quality"
+                                        class="input-number-box"
+                                        value="{{ request.form.get('comm_link_quality', '90') if request.method == 'POST' else '90' }}"
+                                        min="0"
+                                        max="100"
+                                        step="0.1"
+                                        required
+                                        oninput="syncSlider('comm_link_quality', 'comm_slider')"
+                                    >
+                                </div>
+                                <input
+                                    type="range"
+                                    id="comm_slider"
+                                    class="slider-bar"
+                                    min="0"
+                                    max="100"
+                                    step="0.1"
+                                    value="{{ request.form.get('comm_link_quality', '90') if request.method == 'POST' else '90' }}"
+                                    oninput="syncNumber('comm_slider', 'comm_link_quality')"
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Thermal Margin -->
+                        <div class="form-group">
+                            <div class="field-label-row">
+                                <label class="field-label" for="thermal_margin">
+                                    Thermal Margin
+                                </label>
+                                <span class="field-health-tag" id="thermal-tag">NOMINAL</span>
+                            </div>
+                            <div class="telemetry-input-wrap">
+                                <div class="telemetry-input-row">
+                                    <input
+                                        type="number"
+                                        id="thermal_margin"
+                                        name="thermal_margin"
+                                        class="input-number-box"
+                                        value="{{ request.form.get('thermal_margin', '15') if request.method == 'POST' else '15' }}"
+                                        step="0.1"
+                                        required
+                                        oninput="updateHealthTags()"
+                                    >
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Secondary Parameters -->
+                    <div class="subsystem-grid" style="margin-top: 6px;">
+
+                        <!-- Payload Status -->
+                        <div class="form-group">
+                            <div class="field-label-row">
+                                <label class="field-label" for="payload_active">
+                                    Payload Subsystem
+                                </label>
+                            </div>
+                            <select id="payload_active" name="payload_active" class="telemetry-select" onchange="updateHealthTags()">
+                                <option value="true" {% if request.form.get('payload_active') == 'true' or request.method == 'GET' %}selected{% endif %}>
+                                    🟢 Active (High Draw)
+                                </option>
+                                <option value="false" {% if request.form.get('payload_active') == 'false' %}selected{% endif %}>
+                                    ⚪ Inactive (Standby)
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- FRC Horizon -->
+                        <div class="form-group">
+                            <div class="field-label-row">
+                                <label class="field-label" for="horizon">
+                                    FRC Horizon (Minutes)
+                                </label>
+                            </div>
+                            <input
+                                type="number"
+                                id="horizon"
+                                name="horizon"
+                                class="input-number-box"
+                                value="{{ request.form.get('horizon', '60') if request.method == 'POST' else '60' }}"
+                                min="1"
+                                required
+                            >
+                        </div>
+
+                    </div>
+
+                    <!-- ACTION BUTTON -->
+                    <button type="submit" class="submit-btn" id="run-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                        RUN MULTI-AGENT RECOVERY
+                    </button>
+
+                </form>
+            </section>
+
+            <!-- RIGHT PANEL: MULTI-AGENT RESULTS / PIPELINE -->
+            {% if result or error %}
+            <div class="results-container">
+
+                <!-- PIPELINE ERROR -->
+                {% if error %}
+                <div class="error-card">
+                    <h2>⚠️ Multi-Agent Pipeline Fault</h2>
+                    <div class="evidence-terminal">{{ error }}</div>
+                </div>
+                {% endif %}
+
+                {% if result %}
+                <!-- Pipeline Stepper Status Bar -->
+                <div class="pipeline-stepper">
+                    <div class="step-item completed">
+                        <div class="step-badge">✓</div>
+                        <span>1. Telemetry Ingest</span>
+                    </div>
+                    <div class="step-arrow">➔</div>
+                    <div class="step-item completed">
+                        <div class="step-badge">✓</div>
+                        <span>2. ReAct Diagnosis</span>
+                    </div>
+                    <div class="step-arrow">➔</div>
+                    <div class="step-item completed">
+                        <div class="step-badge">✓</div>
+                        <span>3. Recovery Planning</span>
+                    </div>
+                    <div class="step-arrow">➔</div>
+                    <div class="step-item completed">
+                        <div class="step-badge">✓</div>
+                        <span>4. FRC Authority</span>
+                    </div>
+                    <div class="step-arrow">➔</div>
+                    <div class="step-item active">
+                        <div class="step-badge">★</div>
+                        <span>5. Final Decision</span>
+                    </div>
+                </div>
+
+                <!-- 1. DIAGNOSIS AGENT CARD -->
+                <div class="agent-card">
+                    <div class="agent-card-header">
+                        <div class="agent-name-group">
+                            <div class="agent-icon-wrap icon-diagnosis">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" y1="16" x2="12" y2="12"/>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                                </svg>
+                            </div>
+                            <div class="agent-title-text">
+                                <h3>1. Diagnosis ReAct Agent</h3>
+                                <span>RAG VECTOR RETRIEVAL + ANOMALY CLASSIFICATION</span>
+                            </div>
+                        </div>
+
+                        <div class="confidence-chip">
+                            <span>Confidence:</span>
+                            <span class="confidence-val">
+                                {{ (result.diagnosis.confidence * 100)|round|int }}%
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="diagnosis-details-grid">
+                        <div class="detail-row">
+                            <span class="detail-title">Detected Fault Classification</span>
+                            <div class="fault-badge">
+                                ⚠️ {{ result.diagnosis.fault_type }}
+                            </div>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-title">Telemetry & System Evidence</span>
+                            <div class="evidence-terminal">{{ result.diagnosis.evidence }}</div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 4px;">
+                            <div class="detail-row">
+                                <span class="detail-title">Supporting Knowledge Base Docs</span>
+                                <div class="chips-container">
+                                    {% for doc_id in result.diagnosis.supporting_doc_ids %}
+                                    <span class="kb-chip">📄 {{ doc_id }}</span>
+                                    {% else %}
+                                    <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);">None</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="detail-row">
+                                <span class="detail-title">Candidate Recovery Procedures</span>
+                                <div class="chips-container">
+                                    {% for proc_id in result.diagnosis.candidate_procedure_ids %}
+                                    <span class="procedure-chip">⚙️ {{ proc_id }}</span>
+                                    {% else %}
+                                    <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);">None</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. RECOVERY REACT AGENT CARD -->
+                <div class="agent-card">
+                    <div class="agent-card-header">
+                        <div class="agent-name-group">
+                            <div class="agent-icon-wrap icon-recovery">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                </svg>
+                            </div>
+                            <div class="agent-title-text">
+                                <h3>2. Recovery ReAct Agent</h3>
+                                <span>PROCEDURE SELECTION & PRECONDITION SATISFACTION</span>
+                            </div>
+                        </div>
+                        <span class="system-badge" style="border-color: rgba(168,85,247,0.3); color: var(--accent-violet);">
+                            {{ result.recovery.selected_procedure_id }}
+                        </span>
+                    </div>
+
+                    <!-- Highlighted Recovery Plan -->
+                    {% if recovery_plan %}
+                    <div class="recovery-plan-card">
+                        <div class="plan-header">
+                            <span class="plan-title">{{ recovery_plan.name }}</span>
+                            <span class="plan-badge">{{ recovery_plan.procedure_id }}</span>
+                        </div>
+                        <p class="plan-desc">{{ recovery_plan.description }}</p>
+                    </div>
+                    {% endif %}
+
+                    <div class="diagnosis-details-grid" style="margin-top: 10px;">
+                        <div class="detail-row">
+                            <span class="detail-title">Agent Multi-Step Reasoning</span>
+                            <div class="evidence-terminal">{{ result.recovery.reasoning }}</div>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-title">Alternative Procedures Evaluated</span>
+                            <div class="chips-container">
+                                {% for alt_id in result.recovery.alternatives_considered %}
+                                <span class="procedure-chip">🔄 {{ alt_id }}</span>
+                                {% else %}
+                                <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);">None</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. FRC SAFETY AUTHORITY CARD -->
+                <div class="agent-card">
+                    <div class="agent-card-header">
+                        <div class="agent-name-group">
+                            <div class="agent-icon-wrap icon-safety">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                </svg>
+                            </div>
+                            <div class="agent-title-text">
+                                <h3>3. FRC Safety Authority</h3>
+                                <span>INDEPENDENT FUTURE RECOVERY CAPABILITY VERIFICATION</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FRC Evaluation Banner -->
+                    <div class="frc-status-banner {% if result.frc.passes %}frc-passed{% else %}frc-failed{% endif %}">
+                        <div class="frc-eval-title">
+                            {% if result.frc.passes %}
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            FRC SAFETY EVALUATION: PASSED
+                            {% else %}
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                            FRC SAFETY EVALUATION: FAILED
+                            {% endif %}
+                        </div>
+
+                        <div class="violations-counter">
+                            Violations: <strong>{{ result.frc.violation_count }}</strong> / Max Allowed: <strong>{{ result.frc.max_violation_count }}</strong>
+                        </div>
+                    </div>
+
+                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
+                        <span>Evaluated Procedure:</span>
+                        <strong style="color: #ffffff;">
+                            {% if recovery_plan %}
+                                {{ recovery_plan.name }} ({{ result.frc.procedure_id }})
+                            {% else %}
+                                {{ result.frc.procedure_id }}
+                            {% endif %}
+                        </strong>
+                        <span style="margin: 0 8px;">•</span>
+                        <span>Corridor Violations:</span>
+                        <strong style="color: {% if result.frc.violated_dimensions %}var(--accent-rose){% else %}var(--accent-emerald){% endif %};">
+                            {% if result.frc.violated_dimensions %}
+                                {{ result.frc.violated_dimensions }}
+                            {% else %}
+                                None (All Safe)
+                            {% endif %}
+                        </strong>
+                    </div>
+
+                    <!-- Telemetry Comparison Matrix -->
+                    <div class="matrix-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"/>
+                            <line x1="12" y1="20" x2="12" y2="4"/>
+                            <line x1="6" y1="20" x2="6" y2="14"/>
+                        </svg>
+                        Predicted Spacecraft State After Recovery
+                    </div>
+
+                    <div class="state-matrix-grid">
+                        
+                        <!-- Battery SOC Tile -->
+                        <div class="state-tile">
+                            <span class="state-tile-label">Battery SOC</span>
+                            <div class="state-tile-value">
+                                {{ "%.1f"|format(result.frc.final_state.battery_soc) }}%
+                                {% set initial_batt = request.form.get('battery_soc', '22')|float %}
+                                {% set batt_diff = result.frc.final_state.battery_soc - initial_batt %}
+                                <span class="state-delta {% if batt_diff > 0 %}delta-positive{% elif batt_diff < 0 %}delta-negative{% else %}delta-neutral{% endif %}">
+                                    {% if batt_diff > 0 %}+{% endif %}{{ "%.1f"|format(batt_diff) }}%
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Attitude Stability Tile -->
+                        <div class="state-tile">
+                            <span class="state-tile-label">Attitude Stability</span>
+                            <div class="state-tile-value">
+                                {{ "%.1f"|format(result.frc.final_state.attitude_stability) }}%
+                                {% set initial_att = request.form.get('attitude_stability', '60')|float %}
+                                {% set att_diff = result.frc.final_state.attitude_stability - initial_att %}
+                                <span class="state-delta {% if att_diff > 0 %}delta-positive{% elif att_diff < 0 %}delta-negative{% else %}delta-neutral{% endif %}">
+                                    {% if att_diff > 0 %}+{% endif %}{{ "%.1f"|format(att_diff) }}%
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Comm Link Tile -->
+                        <div class="state-tile">
+                            <span class="state-tile-label">Comm Link Quality</span>
+                            <div class="state-tile-value">
+                                {{ "%.1f"|format(result.frc.final_state.comm_link_quality) }}%
+                            </div>
+                        </div>
+
+                        <!-- Thermal Margin Tile -->
+                        <div class="state-tile">
+                            <span class="state-tile-label">Thermal Margin</span>
+                            <div class="state-tile-value">
+                                {{ "%.1f"|format(result.frc.final_state.thermal_margin) }}
+                            </div>
+                        </div>
+
+                        <!-- Payload Status Tile -->
+                        <div class="state-tile">
+                            <span class="state-tile-label">Payload Subsystem</span>
+                            <div class="state-tile-value">
+                                {% if result.frc.final_state.payload_active %}
+                                    <span style="color: var(--accent-emerald);">Active</span>
+                                {% else %}
+                                    <span style="color: var(--text-muted);">Inactive (Safe)</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Simulation Time Tile -->
+                        <div class="state-tile">
+                            <span class="state-tile-label">Simulation Horizon</span>
+                            <div class="state-tile-value">
+                                {{ result.frc.final_state.time }} min
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- 4. FINAL MULTI-AGENT DECISION BANNER -->
+                <div class="decision-banner {% if result.frc.passes %}decision-authorized{% else %}decision-rejected{% endif %}">
+                    <div class="decision-headline-row">
+                        <div class="decision-badge-text">
+                            🛰️ FLIGHT DIRECTOR MISSION AUTHORIZATION
+                        </div>
+                        <span class="system-badge" style="background: rgba(0,0,0,0.5);">
+                            SIMULATION VERIFIED
+                        </span>
+                    </div>
+
+                    <div class="decision-main-text">
+                        {{ result.final_decision }}
+                    </div>
+
+                    <p class="decision-subtext">
+                        {% if result.frc.passes %}
+                        Multi-agent consensus achieved. Diagnosis confirmed, procedure preconditions validated, and independent FRC trajectory prediction confirms zero critical safety corridor violations. Authorized for telecommand uplink.
+                        {% else %}
+                        FRC safety authority has intervened and rejected the proposed recovery procedure. Trajectory predictions violate mandatory safety thresholds. Manual ground controller intervention recommended.
+                        {% endif %}
+                    </p>
+
+                    <div class="actions-row">
+                        <button type="button" class="action-chip-btn" onclick="copyMissionLog()">
+                            📋 Copy Telemetry Report
+                        </button>
+                        <button type="button" class="action-chip-btn" onclick="window.print()">
+                            🖨️ Export PDF / Print
+                        </button>
+                        <button type="button" class="action-chip-btn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+                            ↺ Run Another Scenario
+                        </button>
+                    </div>
+                </div>
+
+                {% endif %}
+            </div>
+            {% endif %}
+
+        </main>
+    </div>
+
+    <!-- Interactive Client Scripts -->
+    <script>
+        // Preset Scenarios Data
+        const PRESETS = {
+            'attitude_power': {
+                anomaly: 'Attitude stability dropped while battery SOC is marginal.',
+                attitude: 60,
+                battery: 22,
+                comm: 90,
+                thermal: 15,
+                payload: 'true',
+                horizon: 60
+            },
+            'battery_critical': {
+                anomaly: 'Solar array shadow event causing rapid battery SOC depletion below operational threshold.',
+                attitude: 88,
+                battery: 18,
+                comm: 85,
+                thermal: 12,
+                payload: 'true',
+                horizon: 60
+            },
+            'comm_loss': {
+                anomaly: 'Deep space telemetry degradation with high packet loss across primary antenna link.',
+                attitude: 75,
+                battery: 70,
+                comm: 25,
+                thermal: 14,
+                payload: 'true',
+                horizon: 45
+            },
+            'thermal_excursion': {
+                anomaly: 'Excessive thermal build-up detected in payload bay following extended orbital sun-exposure.',
+                attitude: 85,
+                battery: 55,
+                comm: 88,
+                thermal: 32,
+                payload: 'true',
+                horizon: 60
+            },
+            'default': {
+                anomaly: 'Example: Attitude stability dropped while battery SOC is marginal.',
+                attitude: 60,
+                battery: 22,
+                comm: 90,
+                thermal: 15,
+                payload: 'true',
+                horizon: 60
+            }
+        };
+
+        function loadPreset(key) {
+            playAudioTone(880, 0.05);
+            const p = PRESETS[key];
+            if (!p) return;
+
+            document.getElementById('anomaly').value = p.anomaly;
+            document.getElementById('attitude_stability').value = p.attitude;
+            document.getElementById('attitude_slider').value = p.attitude;
+            document.getElementById('battery_soc').value = p.battery;
+            document.getElementById('battery_slider').value = p.battery;
+            document.getElementById('comm_link_quality').value = p.comm;
+            document.getElementById('comm_slider').value = p.comm;
+            document.getElementById('thermal_margin').value = p.thermal;
+            document.getElementById('payload_active').value = p.payload;
+            document.getElementById('horizon').value = p.horizon;
+
+            updateHealthTags();
+        }
+
+        // Synchronize Slider and Number Inputs
+        function syncSlider(numId, sliderId) {
+            const val = document.getElementById(numId).value;
+            document.getElementById(sliderId).value = val;
+            updateHealthTags();
+        }
+
+        function syncNumber(sliderId, numId) {
+            const val = document.getElementById(sliderId).value;
+            document.getElementById(numId).value = val;
+            updateHealthTags();
+        }
+
+        // Live Health Badges
+        function updateHealthTags() {
+            const att = parseFloat(document.getElementById('attitude_stability').value) || 0;
+            const batt = parseFloat(document.getElementById('battery_soc').value) || 0;
+            const comm = parseFloat(document.getElementById('comm_link_quality').value) || 0;
+            const therm = parseFloat(document.getElementById('thermal_margin').value) || 0;
+
+            setTag('attitude-tag', att >= 75 ? 'NOMINAL' : (att >= 45 ? 'DEGRADED' : 'CRITICAL'), att >= 75 ? 'tag-nominal' : (att >= 45 ? 'tag-warning' : 'tag-critical'));
+            setTag('battery-tag', batt >= 40 ? 'NOMINAL' : (batt >= 20 ? 'MARGINAL' : 'CRITICAL'), batt >= 40 ? 'tag-nominal' : (batt >= 20 ? 'tag-warning' : 'tag-critical'));
+            setTag('comm-tag', comm >= 70 ? 'NOMINAL' : (comm >= 40 ? 'DEGRADED' : 'CRITICAL'), comm >= 70 ? 'tag-nominal' : (comm >= 40 ? 'tag-warning' : 'tag-critical'));
+            setTag('thermal-tag', (therm >= 5 && therm <= 25) ? 'NOMINAL' : 'EXCURSION', (therm >= 5 && therm <= 25) ? 'tag-nominal' : 'tag-critical');
+        }
+
+        function setTag(id, text, className) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = text;
+            el.className = 'field-health-tag ' + className;
+        }
+
+        // UTC Clock
+        function updateUTCClock() {
+            const now = new Date();
+            const utcString = now.toUTCString().split(' ')[4] + ' UTC';
+            const clockEl = document.getElementById('utc-clock');
+            if (clockEl) clockEl.textContent = utcString;
+        }
+        setInterval(updateUTCClock, 1000);
+        updateUTCClock();
+
+        // Loading HUD Animation
+        function handleFormSubmit() {
+            playAudioTone(1200, 0.15);
+            const overlay = document.getElementById('loading-overlay');
+            overlay.style.display = 'flex';
+
+            const logEl = document.getElementById('loading-log');
+            const messages = [
+                "Transmitting telemetry vector to orbital agent bus...",
+                "Running Diagnosis ReAct Agent (RAG Vector Search)...",
+                "Synthesizing candidate recovery procedures...",
+                "Running Recovery ReAct Agent planning...",
+                "Evaluating Future Recovery Capability (FRC) 60-min corridor...",
+                "Awaiting Flight Director Final Authorization..."
+            ];
+
+            let idx = 0;
+            const interval = setInterval(() => {
+                idx++;
+                if (idx < messages.length) {
+                    logEl.textContent = messages[idx];
+                    playAudioTone(600 + idx * 100, 0.04);
+                } else {
+                    clearInterval(interval);
+                }
+            }, 1400);
+        }
+
+        // Copy Report
+        function copyMissionLog() {
+            const report = `=== SATELLITE RECOVERY AI REPORT ===\nTimestamp: ${new Date().toISOString()}\nFinal Decision: ${document.querySelector('.decision-main-text')?.innerText || ''}\nEvidence: ${document.querySelector('.evidence-terminal')?.innerText || ''}`;
+            navigator.clipboard.writeText(report).then(() => {
+                alert("Mission telemetry report copied to clipboard.");
+            });
+        }
+
+        // Web Audio Feedback (Sci-Fi Ground Station Telemetry Beeps)
+        let audioEnabled = true;
+        let audioCtx = null;
+
+        function toggleAudioFeedback() {
+            audioEnabled = !audioEnabled;
+            document.getElementById('audio-state').textContent = audioEnabled ? 'ON' : 'OFF';
+            document.getElementById('audio-icon').textContent = audioEnabled ? '🔊' : '🔇';
+            if (audioEnabled) playAudioTone(900, 0.08);
+        }
+
+        function playAudioTone(freq, duration) {
+            if (!audioEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                // AudioContext not allowed before user interaction
+            }
+        }
+
+        // Dynamic Space Starfield Background
+        (function() {
+            const canvas = document.getElementById('starfield-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            let w, h;
+            let stars = [];
+
+            function resize() {
+                w = canvas.width = window.innerWidth;
+                h = canvas.height = window.innerHeight;
+                stars = [];
+                for (let i = 0; i < 90; i++) {
+                    stars.push({
+                        x: Math.random() * w,
+                        y: Math.random() * h,
+                        radius: Math.random() * 1.5 + 0.5,
+                        alpha: Math.random() * 0.8 + 0.2,
+                        speed: Math.random() * 0.2 + 0.05
+                    });
+                }
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            function draw() {
+                ctx.clearRect(0, 0, w, h);
+                ctx.fillStyle = '#ffffff';
+
+                for (let s of stars) {
+                    ctx.save();
+                    ctx.globalAlpha = s.alpha;
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+
+                    s.y -= s.speed;
+                    if (s.y < 0) s.y = h;
+                }
+                requestAnimationFrame(draw);
+            }
+            draw();
+        })();
+
+        // Initial health tags on page load
+        updateHealthTags();
+    </script>
+</body>
+</html>

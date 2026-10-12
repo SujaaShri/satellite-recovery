@@ -1,0 +1,18 @@
+{
+    "subsystem": "communication",
+    "model_type": "OneClassSVM",
+    "kernel": "rbf",
+    "nu": 0.01,
+    "gamma": 1.0,
+    "threshold": 0.004068399049099863,
+    "window_size": 20,
+    "gap_threshold_minutes": 2,
+    "input_channels": [
+        "Background_RSSI",
+        "Last_RSSI",
+        "NanoCom_Temp"
+    ],
+    "feature_count": 32,
+    "score_direction": "higher_is_more_anomalous",
+    "last_rssi_zero_handling": "sentinel_preserved"
+}

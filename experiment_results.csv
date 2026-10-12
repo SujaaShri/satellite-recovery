@@ -1,0 +1,7 @@
+scenario,diagnosed_fault,diagnosis_confidence,retrieved_docs,selected_procedure,feasible,frc_pass,replan_count,rejected_procedures,final_decision
+Battery depletion during eclipse,battery_low,0.93,"KB_01, KB_02, KB_03",RP_01,True,True,0,,RECOVERY AUTHORIZED: RP_01
+Attitude fault with marginal battery,attitude_fault,0.86,"KB_09, KB_15, KB_07",RP_03,True,True,0,,RECOVERY AUTHORIZED: RP_03
+Attitude control fault,attitude_fault,0.95,"KB_09, KB_15, KB_07",RP_03,True,True,0,,RECOVERY AUTHORIZED: RP_03
+Thermal excursion,thermal_excursion,0.92,"KB_04, KB_06, KB_05",RP_05,True,True,0,,RECOVERY AUTHORIZED: RP_05
+Communication degradation,comm_degradation,0.93,"KB_03, KB_10, KB_11",RP_04,True,True,0,,RECOVERY AUTHORIZED: RP_04
+Attitude fault with critically low battery,attitude_fault,0.93,"KB_09, KB_15, KB_08",,False,False,0,,REJECTED: no feasible recovery procedure available

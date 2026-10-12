@@ -1,0 +1,17 @@
+{
+    "subsystem": "attitude",
+    "model_type": "OneClassSVM",
+    "kernel": "rbf",
+    "nu": 0.05,
+    "gamma": 0.3,
+    "threshold": 0.006828,
+    "window_size": 20,
+    "gap_threshold_minutes": 3,
+    "input_channels": [
+        "X_Coarse_Spin",
+        "Y_Coarse_Spin",
+        "Z_Coarse_Spin"
+    ],
+    "feature_extractor": "original_features",
+    "score_direction": "higher_is_more_anomalous"
+}

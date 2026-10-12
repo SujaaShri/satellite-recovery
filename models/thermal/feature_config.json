@@ -1,0 +1,36 @@
+{
+    "feature_version": "thermal_dynamic_v2",
+    "features": [
+        "ACU2_Temp_std",
+        "ACU2_Temp_range",
+        "ACU2_Temp_slope",
+        "ACU2_Temp_net_change",
+        "ACU2_Temp_mean_abs_delta",
+        "ACU2_Temp_max_abs_delta",
+        "NanoMind_Temp_std",
+        "NanoMind_Temp_range",
+        "NanoMind_Temp_slope",
+        "NanoMind_Temp_net_change",
+        "NanoMind_Temp_mean_abs_delta",
+        "NanoMind_Temp_max_abs_delta",
+        "SEPP_Temp_std",
+        "SEPP_Temp_range",
+        "SEPP_Temp_slope",
+        "SEPP_Temp_net_change",
+        "SEPP_Temp_mean_abs_delta",
+        "SEPP_Temp_max_abs_delta",
+        "ACU2_NanoMind_corr",
+        "ACU2_NanoMind_dynamic_divergence",
+        "Dynamic_component_relative_spread"
+    ],
+    "absolute_level_features_removed": true,
+    "dynamic_channels": [
+        "ACU2_Temp",
+        "NanoMind_Temp",
+        "SEPP_Temp"
+    ],
+    "context_channels_excluded": [
+        "HD_Cam_Temp",
+        "SDR_Temp"
+    ]
+}
